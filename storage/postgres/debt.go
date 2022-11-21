@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/SaidovZohid/market-project/storage/repo"
@@ -169,9 +170,27 @@ func (dr *debtRepo) Delete(debt_id int64) error {
 
 func (dr *debtRepo) GetAll(params *repo.GetAllParams) (*repo.GetAllDebts, error) {
 	offset := (params.Page - 1) * params.Limit
+	limit := fmt.Sprintf(" LIMIT %d OFFSET %d", params.Limit, offset)
 	filter := " WHERE true"
+	if params.FirstName != "" {
+		filter += fmt.Sprintf(" AND first_name ilike '%s'", "%" + params.FirstName + "%")
+	} 
 
-	var debt repo.Debt
+	if params.LastName != "" {
+		filter += fmt.Sprintf(" AND last_name ilike '%s'", "%" + params.LastName + "%")
+	}
+
+	if params.PhoneNumber != "" {
+		filter += fmt.Sprintf(" AND phone_number ilike '%s'", "%" + params.PhoneNumber + "%")
+	}
+
+	if params.AdditionalPhone != "" {
+		filter += fmt.Sprintf(" AND additional_phone_number ilike '%s'", "%" + params.AdditionalPhone + "%")
+	}
+
+	if params.SellerFullName != "" {
+		filter += fmt.Sprintf(" AND seller_fullname ilike '%s'", "%" + params.SellerFullName + "%")
+	}
 
 	query := `
 		SELECT
@@ -185,26 +204,36 @@ func (dr *debtRepo) GetAll(params *repo.GetAllParams) (*repo.GetAllDebts, error)
 			created_at,
 			updated_at,
 			deleted_at
-		FROM debts WHERE id = $1
-	`
-	err := dr.db.QueryRow(
-		query,
-		debt_id,
-	).Scan(
-		&debt.ID,
-		&debt.FirstName,
-		&debt.LastName,
-		&debt.PhoneNumber,
-		&debt.AdditionalPhoneNumber,
-		&debt.AddressWork,
-		&debt.SellerFullName,
-		&debt.CreatedAt,
-		&debt.UpdatedAt,
-		&debt.DeletedAt,
-	)
+		FROM debts
+	` + filter + limit
+	rows, err := dr.db.Query(query)
+
+	var debts repo.GetAllDebts
+	for rows.Next() {
+		var debt repo.Debt
+		err := rows.Scan(
+			&debt.ID,
+			&debt.FirstName,
+			&debt.LastName,
+			&debt.PhoneNumber,
+			&debt.AdditionalPhoneNumber,
+			&debt.AddressWork,
+			&debt.SellerFullName,
+			&debt.CreatedAt,
+			&debt.UpdatedAt,
+			&debt.DeletedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		debts.Debts = append(debts.Debts, &debt)
+	}
+
+	queryCount := "SELECT count(1) FROM debts"
+	err = dr.db.QueryRow(queryCount).Scan(&debts.Count)
 	if err != nil {
 		return nil, err
 	}
 
-	return &debt, nil
+	return &debts, nil
 }

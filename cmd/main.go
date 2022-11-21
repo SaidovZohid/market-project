@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/SaidovZohid/market-project/api"
 	"github.com/SaidovZohid/market-project/config"
 	"github.com/SaidovZohid/market-project/storage"
 	"github.com/jmoiron/sqlx"
@@ -26,7 +27,12 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	storage.NewStoragePg(psqlConn)
+	strg := storage.NewStoragePg(psqlConn)
 
-	
+	api := api.New(&api.RouteOptions{
+		Cfg: &cfg,
+		Storage: strg,
+	})
+
+	api.Run(cfg.HttpPort)
 }

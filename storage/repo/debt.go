@@ -11,8 +11,8 @@ type Debt struct {
 	AddressWork           string
 	SellerFullName        string
 	CreatedAt             time.Time
-	UpdatedAt             time.Time
-	DeletedAt             time.Time
+	UpdatedAt             *time.Time
+	DeletedAt             *time.Time
 }
 
 type DebtStorageI interface {
